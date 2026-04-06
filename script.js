@@ -98,9 +98,18 @@ function goto(page) {
 /* ═══════════════════════════════════════════════════════════════════════════
    API HELPERS
 ═══════════════════════════════════════════════════════════════════════════ */
+function resolveBase() {
+  const cfg = getCfg();
+  // On localhost use the API directly; on any hosted domain use the /api proxy
+  if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+    return cfg.baseUrl;
+  }
+  return '/api';
+}
+
 async function apiPost(path, body) {
   const cfg = getCfg();
-  const res = await fetch(cfg.baseUrl + path, {
+  const res = await fetch(resolveBase() + path, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-api-key': cfg.apiKey },
     body: JSON.stringify(body),
@@ -111,7 +120,7 @@ async function apiPost(path, body) {
 
 async function apiGet(path) {
   const cfg = getCfg();
-  const res = await fetch(cfg.baseUrl + path, {
+  const res = await fetch(resolveBase() + path, {
     headers: { 'x-api-key': cfg.apiKey },
   });
   const json = await res.json().catch(() => ({}));
