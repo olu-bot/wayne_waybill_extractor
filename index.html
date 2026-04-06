@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WAYNE — AWB Tracker Portal</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<!-- ── Login ─────────────────────────────────────────────────────────────── -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">W<span>A</span>YNE</div>
+    <div class="login-subtitle">AWB Tracker Portal</div>
+    <input type="text"     id="login-user" placeholder="Username"  autocomplete="username" />
+    <input type="password" id="login-pass" placeholder="Password"  autocomplete="current-password" />
+    <button class="btn-primary" onclick="doLogin()">Sign In</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<!-- ── App ───────────────────────────────────────────────────────────────── -->
+<div id="app">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-name">W<span>A</span>YNE</div>
+      <div class="brand-tag">AWB Tracker</div>
+    </div>
+    <nav class="nav">
+      <div class="nav-item active" onclick="goto('dashboard')">
+        <span class="icon">📊</span><span>Dashboard</span>
+      </div>
+      <div class="nav-item" onclick="goto('single')">
+        <span class="icon">🔎</span><span>Single Query</span>
+      </div>
+      <div class="nav-item" onclick="goto('batch')">
+        <span class="icon">📋</span><span>Batch Process</span>
+      </div>
+      <div class="nav-item" onclick="goto('arrivals')">
+        <span class="icon">📄</span><span>Arrival Notices</span>
+      </div>
+      <div class="nav-item" onclick="goto('history')">
+        <span class="icon">🕐</span><span>History</span>
+      </div>
+      <div class="nav-item" onclick="goto('settings')">
+        <span class="icon">⚙️</span><span>Settings</span>
+      </div>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="api-status">
+        <div class="status-dot" id="status-dot"></div>
+        <span id="status-label">Checking...</span>
+      </div>
+      <button class="btn-logout" onclick="doLogout()">
+        <span>🚪</span><span>Sign Out</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <div class="topbar-title" id="page-title">Dashboard</div>
+        <div class="topbar-meta" id="page-meta"></div>
+      </div>
+      <div id="topbar-right"></div>
+    </div>
+    <div class="content">
+
+      <!-- ── DASHBOARD ──────────────────────────────────────────────────── -->
+      <div class="page active" id="page-dashboard">
+        <div class="stat-grid">
+          <div class="stat-card accent-blue">
+            <div class="stat-label">Total Queries</div>
+            <div class="stat-value" id="stat-total">0</div>
+            <div class="stat-sub">All time</div>
+          </div>
+          <div class="stat-card accent-green">
+            <div class="stat-label">Successful</div>
+            <div class="stat-value" id="stat-success">0</div>
+            <div class="stat-sub" id="stat-success-rate">—</div>
+          </div>
+          <div class="stat-card accent-red">
+            <div class="stat-label">Failed</div>
+            <div class="stat-value" id="stat-failed">0</div>
+            <div class="stat-sub">Errors</div>
+          </div>
+          <div class="stat-card accent-gold">
+            <div class="stat-label">Today</div>
+            <div class="stat-value" id="stat-today">0</div>
+            <div class="stat-sub">Queries today</div>
+          </div>
+        </div>
+        <div class="dash-grid">
+          <div class="card">
+            <div class="card-title">Recent Queries</div>
+            <div class="history-list" id="dash-recent">
+              <div class="empty"><div class="empty-icon">🔍</div><p>No queries yet</p></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">API Server</div>
+            <div id="health-details" style="font-size:13px; color: var(--muted);">
+              Running health check...
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── SINGLE QUERY ───────────────────────────────────────────────── -->
+      <div class="page" id="page-single">
+        <div class="card" style="max-width:580px;">
+          <div class="card-title">Query AWB Number</div>
+          <div class="form-group">
+            <label>AWB Number</label>
+            <input type="text" id="single-awb" placeholder="e.g. 297-72729171" />
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-blue" onclick="runSingleQuery()" id="btn-single-query">
+              <div class="spinner" id="spinner-single"></div>
+              <span>🔎 Search</span>
+            </button>
+            <button class="btn btn-ghost" onclick="clearSingleResult()">Clear</button>
+          </div>
+        </div>
+        <div id="single-result"></div>
+      </div>
+
+      <!-- ── BATCH PROCESS ──────────────────────────────────────────────── -->
+      <div class="page" id="page-batch">
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card-title">Batch AWB Processing</div>
+          <div class="form-group">
+            <label>AWB Numbers — one per line</label>
+            <textarea id="batch-awbs" placeholder="297-72729171&#10;180-62024023&#10;369-99346483&#10;..."></textarea>
+          </div>
+          <div class="batch-status" id="batch-status"></div>
+          <div class="progress-bar-wrap" id="progress-wrap">
+            <div class="progress-bar" id="progress-bar"></div>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-blue" onclick="runBatch()" id="btn-batch">
+              <div class="spinner" id="spinner-batch"></div>
+              <span>▶ Start Batch</span>
+            </button>
+            <button class="btn btn-ghost" onclick="exportBatchCSV()" id="btn-export-csv" disabled>⬇ Export CSV</button>
+            <button class="btn btn-ghost" onclick="exportBatchExcel()" id="btn-export-excel" disabled>⬇ Export Excel</button>
+            <button class="btn btn-ghost" onclick="clearBatch()">Clear</button>
+          </div>
+        </div>
+        <div id="batch-table-wrap"></div>
+      </div>
+
+      <!-- ── ARRIVAL NOTICES ────────────────────────────────────────────── -->
+      <div class="page" id="page-arrivals">
+        <div class="card" style="max-width:580px; margin-bottom:20px;">
+          <div class="card-title">Download Arrival Notice PDF</div>
+          <div class="form-group">
+            <label>AWB Number</label>
+            <input type="text" id="arrival-awb" placeholder="e.g. 297-72729171" />
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-gold" onclick="downloadArrivalNotice()" id="btn-arrival">
+              <div class="spinner" id="spinner-arrival"></div>
+              <span>📄 Download PDF</span>
+            </button>
+          </div>
+          <div id="arrival-result" style="margin-top:16px; font-size:13px;"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Batch Arrival Notices — one AWB per line</div>
+          <div class="form-group">
+            <textarea id="arrival-batch-awbs" placeholder="297-72729171&#10;180-62024023&#10;..."></textarea>
+          </div>
+          <div class="batch-status" id="arrival-batch-status"></div>
+          <div class="progress-bar-wrap" id="arrival-progress-wrap">
+            <div class="progress-bar" id="arrival-progress-bar"></div>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-gold" onclick="runBatchArrivals()" id="btn-arrival-batch">
+              <div class="spinner" id="spinner-arrival-batch"></div>
+              <span>📄 Download All PDFs</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── HISTORY ────────────────────────────────────────────────────── -->
+      <div class="page" id="page-history">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+          <div style="font-size:14px; color:var(--muted);" id="history-count"></div>
+          <div class="btn-row" style="margin:0;">
+            <button class="btn btn-ghost" onclick="exportHistoryCSV()">⬇ Export CSV</button>
+            <button class="btn btn-ghost" onclick="exportHistoryExcel()">⬇ Export Excel</button>
+            <button class="btn btn-red"   onclick="clearHistory()" style="font-size:13px; padding:9px 16px;">🗑 Clear All</button>
+          </div>
+        </div>
+        <div class="table-wrap" id="history-table-wrap">
+          <div class="empty"><div class="empty-icon">🕐</div><p>No history yet</p></div>
+        </div>
+      </div>
+
+      <!-- ── SETTINGS ───────────────────────────────────────────────────── -->
+      <div class="page" id="page-settings">
+        <div class="settings-grid">
+          <div class="card">
+            <div class="card-title">API Configuration</div>
+            <div class="form-group">
+              <label>Base URL</label>
+              <input type="text" id="cfg-base-url" placeholder="http://34.130.114.166:8005" />
+            </div>
+            <div class="form-group">
+              <label>API Key</label>
+              <input type="password" id="cfg-api-key" placeholder="Your API key" />
+            </div>
+            <div class="form-group">
+              <label>Default Scraper</label>
+              <input type="text" id="cfg-scraper" placeholder="gtadnata" />
+            </div>
+            <button class="btn btn-blue" onclick="saveSettings()">💾 Save Settings</button>
+          </div>
+          <div class="card">
+            <div class="card-title">Batch Options</div>
+            <div class="form-group">
+              <label>Delay Between Requests (ms)</label>
+              <input type="text" id="cfg-delay" placeholder="700" />
+            </div>
+            <div class="form-group">
+              <label>Credentials (change login)</label>
+              <input type="text" id="cfg-new-user" placeholder="New username" />
+              <br/><br/>
+              <input type="password" id="cfg-new-pass" placeholder="New password" />
+            </div>
+            <button class="btn btn-blue" onclick="saveSettings()">💾 Save Settings</button>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </main>
+</div>
+
+<!-- Toast container -->
+<div id="toast-wrap"></div>
+
+<script src="script.js"></script>
+</body>
+</html>
