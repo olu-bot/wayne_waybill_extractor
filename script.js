@@ -100,11 +100,11 @@ function goto(page) {
 ═══════════════════════════════════════════════════════════════════════════ */
 function resolveBase() {
   const cfg = getCfg();
-  // On localhost use the API directly; on any hosted domain use the /api proxy
+  // On localhost use the API directly; on hosted domain use the Vercel proxy
   if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
     return cfg.baseUrl;
   }
-  return '/api';
+  return '/api/proxy';
 }
 
 async function apiPost(path, body) {

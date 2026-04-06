@@ -6,15 +6,6 @@
       "**/.*",
       "**/node_modules/**",
       "functions/**"
-    ],
-    "rewrites": [
-      {
-        "source": "/api/**",
-        "function": "proxy"
-      }
     ]
-  },
-  "functions": {
-    "source": "functions"
   }
 }
